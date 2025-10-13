@@ -1,9 +1,8 @@
 dm2nsc
 ======
-## build.io
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://app.build.io/admin/deploy?template=https%3A%2F%2Fgithub.com%2Fdlinah%2Fdm2nsc)
 ## heroku
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://app.build.io/admin/deploy?template=https%3A%2F%2Fgithub.com%2Fdlinah%2Fdm2nsc)
+
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 ## DigitalOcean
@@ -17,3 +16,4 @@ Data conversion tool for uploading Diabetes-M log data to Nightscout.
 click deploy to heroku and add requiered config
 
 data will sync every 10 min
+
