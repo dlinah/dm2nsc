@@ -1,6 +1,12 @@
 import os
 import requests, json, arrow, hashlib, urllib, datetime
 import cloudscraper
+import urllib3
+import ssl
+import secret
+
+# Disable SSL warnings and verification globally
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 DBM_HOST = 'https://analytics.diabetes-m.com'
@@ -10,23 +16,34 @@ NS_AUTHOR = "Diabetes-M (dm2nsc)"
 
 
 def get_login():
-	sess = cloudscraper.create_scraper(
-		browser={
-			'browser': 'chrome',
-			'platform': 'windows',
-			'desktop': True
-		}
-	)
-	index = sess.get(DBM_HOST + '/login')
+	# Try using a regular requests session first, with cloudscraper as fallback
+	try:
+		sess = requests.Session()
+		sess.verify = False
+		index = sess.get(DBM_HOST + '/login')
 
-	return sess.post(DBM_HOST + '/api/v1/user/authentication/login', json={
-		'username': os.environ['USERNAME'],
-		'password': os.environ['PASSWORD'],
-		'device': ''
+	except Exception as e:
+		print(f"Regular requests failed: {e}")
+		print("Trying with cloudscraper...")
+		sess = cloudscraper.create_scraper(
+			browser={
+				'browser': 'chrome',
+				'platform': 'windows',
+				'desktop': True
+			}
+		)
+		sess.verify = False
+		index = sess.get(DBM_HOST + '/login')
+		
+	return sess.post(DBM_HOST + '/api/v1/user/authentication/login_v2', json={
+		"username": secret.USERNAME,
+		"password": secret.PASSWORD,
+		"device": "",
+		"client":"web"
 	}, headers={
 		'origin': DBM_HOST,
 		'referer': DBM_HOST + '/login'
-	}, cookies=index.cookies), sess
+	}, cookies=index.cookies, verify=False), sess
 
 
 def get_entries(login, sess):
@@ -42,7 +59,7 @@ def get_entries(login, sess):
 			'toDate': -1,
 			'page_count': 90000,
 			'page_start_entry_time': 0
-		})
+		}, verify=False)
 	return entries.json()
 
 
@@ -128,15 +145,15 @@ def convert_nightscout(entries, start_time=None):
 	return out
 
 def upload_nightscout(ns_format):
-	upload = requests.post(os.environ['NS_URL'] + 'api/v1/treatments?api_secret=' + os.environ['NS_SECRET'], json=ns_format, headers={
+	upload = requests.post(secret.NS_URL + 'api/v1/treatments?api_secret=' + secret.NS_SECRET, json=ns_format, headers={
 		'Accept': 'application/json',
 		'Content-Type': 'application/json',
-		'api-secret': hashlib.sha1(os.environ['NS_SECRET'].encode()).hexdigest()
-	})
+		'api-secret': hashlib.sha1(secret.NS_SECRET.encode()).hexdigest()
+	}, verify=False)
 	print("Nightscout upload status:", upload.status_code, upload.text)
 
 def get_last_nightscout():
-	last = requests.get(os.environ['NS_URL'] + 'api/v1/treatments?count=1&find[enteredBy]='+urllib.parse.quote(NS_AUTHOR))
+	last = requests.get(secret.NS_URL + 'api/v1/treatments?count=1&find[enteredBy]='+urllib.parse.quote(NS_AUTHOR), verify=False)
 	if last.status_code == 200:
 		js = last.json()
 		if len(js) > 0:
