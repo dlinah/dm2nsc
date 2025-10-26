@@ -3,7 +3,6 @@ import requests, json, arrow, hashlib, urllib, datetime
 import cloudscraper
 import urllib3
 import ssl
-import secret
 
 # Disable SSL warnings and verification globally
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -36,8 +35,8 @@ def get_login():
 		index = sess.get(DBM_HOST + '/login')
 		
 	return sess.post(DBM_HOST + '/api/v1/user/authentication/login_v2', json={
-		"username": secret.USERNAME,
-		"password": secret.PASSWORD,
+		"username": os.getenv('USERNAME'),
+		"password": os.getenv('PASSWORD'),
 		"device": "",
 		"client":"web"
 	}, headers={
@@ -145,15 +144,15 @@ def convert_nightscout(entries, start_time=None):
 	return out
 
 def upload_nightscout(ns_format):
-	upload = requests.post(secret.NS_URL + 'api/v1/treatments?api_secret=' + secret.NS_SECRET, json=ns_format, headers={
+	upload = requests.post(os.getenv('NS_URL') + 'api/v1/treatments?api_secret=' + os.getenv('NS_SECRET'), json=ns_format, headers={
 		'Accept': 'application/json',
 		'Content-Type': 'application/json',
-		'api-secret': hashlib.sha1(secret.NS_SECRET.encode()).hexdigest()
+		'api-secret': hashlib.sha1(os.getenv('NS_SECRET').encode()).hexdigest()
 	}, verify=False)
 	print("Nightscout upload status:", upload.status_code, upload.text)
 
 def get_last_nightscout():
-	last = requests.get(secret.NS_URL + 'api/v1/treatments?count=1&find[enteredBy]='+urllib.parse.quote(NS_AUTHOR), verify=False)
+	last = requests.get(os.getenv('NS_URL') + 'api/v1/treatments?count=1&find[enteredBy]='+urllib.parse.quote(NS_AUTHOR), verify=False)
 	if last.status_code == 200:
 		js = last.json()
 		if len(js) > 0:
